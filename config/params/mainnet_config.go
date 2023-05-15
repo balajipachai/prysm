@@ -34,6 +34,7 @@ var mainnetNetworkConfig = &NetworkConfig{
 	BlobsidecarSubnetCount:           4,
 	AttestationPropagationSlotRange:  32,
 	MaxRequestBlocks:                 1 << 10, // 1024
+	MaxRequestBlocksDeneb:            1 << 7,  // 128
 	TtfbTimeout:                      5 * time.Second,
 	RespTimeout:                      10 * time.Second,
 	MaximumGossipClockDisparity:      500 * time.Millisecond,
@@ -286,14 +287,17 @@ func FillTestVersions(c *BeaconChainConfig, b byte) {
 	c.AltairForkVersion = make([]byte, fieldparams.VersionLength)
 	c.BellatrixForkVersion = make([]byte, fieldparams.VersionLength)
 	c.CapellaForkVersion = make([]byte, fieldparams.VersionLength)
+	c.DenebForkVersion = make([]byte, fieldparams.VersionLength)
 
 	c.GenesisForkVersion[fieldparams.VersionLength-1] = b
 	c.AltairForkVersion[fieldparams.VersionLength-1] = b
 	c.BellatrixForkVersion[fieldparams.VersionLength-1] = b
 	c.CapellaForkVersion[fieldparams.VersionLength-1] = b
+	c.DenebForkVersion[fieldparams.VersionLength-1] = b
 
 	c.GenesisForkVersion[0] = 0
 	c.AltairForkVersion[0] = 1
 	c.BellatrixForkVersion[0] = 2
 	c.CapellaForkVersion[0] = 3
+	c.DenebForkVersion[0] = 4
 }
