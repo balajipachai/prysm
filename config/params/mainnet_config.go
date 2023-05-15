@@ -34,6 +34,7 @@ var mainnetNetworkConfig = &NetworkConfig{
 	BlobsidecarSubnetCount:           4,
 	AttestationPropagationSlotRange:  32,
 	MaxRequestBlocks:                 1 << 10, // 1024
+	MaxRequestBlocksDeneb:            1 << 7,  // 128
 	TtfbTimeout:                      5 * time.Second,
 	RespTimeout:                      10 * time.Second,
 	MaximumGossipClockDisparity:      500 * time.Millisecond,
@@ -46,7 +47,7 @@ var mainnetNetworkConfig = &NetworkConfig{
 	ContractDeploymentBlock:          11184524, // Note: contract was deployed in block 11052984 but no transactions were sent until 11184524.
 	MinEpochsForBlobsSidecarsRequest: 4096,
 	MaxRequestBlobSidecars:           768,
-	MaxRequestBlocksDeneb:            128,
+	MaxRequestBlobsSidecars:          1 << 9, // 512 MAX_REQUEST_BLOCKS_DENEB (128) * MAX_BLOBS_PER_BLOCK (4)
 	BootstrapNodes: []string{
 		// Teku team's bootnode
 		"enr:-KG4QOtcP9X1FbIMOe17QNMKqDxCpm14jcX5tiOE4_TyMrFqbmhPZHK_ZPG2Gxb1GE2xdtodOfx9-cgvNtxnRyHEmC0ghGV0aDKQ9aX9QgAAAAD__________4JpZIJ2NIJpcIQDE8KdiXNlY3AyNTZrMaEDhpehBDbZjM_L9ek699Y7vhUJ-eAdMyQW_Fil522Y0fODdGNwgiMog3VkcIIjKA",
@@ -286,14 +287,17 @@ func FillTestVersions(c *BeaconChainConfig, b byte) {
 	c.AltairForkVersion = make([]byte, fieldparams.VersionLength)
 	c.BellatrixForkVersion = make([]byte, fieldparams.VersionLength)
 	c.CapellaForkVersion = make([]byte, fieldparams.VersionLength)
+	c.DenebForkVersion = make([]byte, fieldparams.VersionLength)
 
 	c.GenesisForkVersion[fieldparams.VersionLength-1] = b
 	c.AltairForkVersion[fieldparams.VersionLength-1] = b
 	c.BellatrixForkVersion[fieldparams.VersionLength-1] = b
 	c.CapellaForkVersion[fieldparams.VersionLength-1] = b
+	c.DenebForkVersion[fieldparams.VersionLength-1] = b
 
 	c.GenesisForkVersion[0] = 0
 	c.AltairForkVersion[0] = 1
 	c.BellatrixForkVersion[0] = 2
 	c.CapellaForkVersion[0] = 3
+	c.DenebForkVersion[0] = 4
 }
