@@ -139,6 +139,21 @@ func SendBeaconBlocksByRootRequest(
 	return blocks, nil
 }
 
+func SendBlobsByRangeRequest(ctx context.Context, ci blockchain.ForkFetcher, p2pApi p2p.SenderEncoder, pid peer.ID, ctxMap ContextByteVersions, req *pb.BlobSidecarsByRangeRequest) ([]*pb.BlobSidecar, error) {
+	topic, err := p2p.TopicFromMessage(p2p.BlobSidecarsByRangeName, slots.ToEpoch(ci.CurrentSlot()))
+	if err != nil {
+		return nil, err
+	}
+	log.WithField("topic", topic).Debug("Sending blob by range request")
+	stream, err := p2pApi.Send(ctx, req, topic, pid)
+	if err != nil {
+		return nil, err
+	}
+	defer closeStream(stream, log)
+
+	return readChunkEncodedBlobs(stream, p2pApi.Encoding(), ctxMap)
+}
+
 func SendBlobSidecarByRoot(
 	ctx context.Context, tor blockchain.TemporalOracle, p2pApi p2p.P2P, pid peer.ID,
 	ctxMap ContextByteVersions, req *p2ptypes.BlobSidecarsByRootReq,
