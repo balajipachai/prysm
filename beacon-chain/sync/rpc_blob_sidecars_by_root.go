@@ -48,6 +48,10 @@ func (s *Service) blobSidecarByRootRPCHandler(ctx context.Context, msg interface
 	minReqEpoch := blobMinReqEpoch(s.cfg.chain.FinalizedCheckpt().Epoch, slots.ToEpoch(s.cfg.clock.CurrentSlot()))
 	blobIdents := *ref
 	for i := range blobIdents {
+		if err := ctx.Err(); err != nil {
+			closeStream(stream, log)
+			return err
+		}
 		root, idx := bytesutil.ToBytes32(blobIdents[i].BlockRoot), blobIdents[i].Index
 		scs, err := s.cfg.beaconDB.BlobSidecarsByRoot(ctx, root)
 		if err != nil {
