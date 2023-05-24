@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -28,29 +30,54 @@ func blobRootRequestFromSidecars(scs []*ethpb.BlobSidecar) interface{} {
 	return &req
 }
 
-func (c *blobsTestCase) filterExpectedByRoot(t *testing.T, scs []*ethpb.BlobSidecar, _ interface{}) []*expectedBlobChunk {
+func (c *blobsTestCase) filterExpectedByRoot(t *testing.T, scs []*ethpb.BlobSidecar, r interface{}) []*expectedBlobChunk {
+	rp, ok := r.(*p2pTypes.BlobSidecarsByRootReq)
+	if !ok {
+		panic("unexpected request type in filterExpectedByRoot")
+	}
+	req := *rp
+	sort.Sort(req)
 	var expect []*expectedBlobChunk
 	blockOffset := 0
 	if len(scs) == 0 {
 		return expect
 	}
 	lastRoot := bytesutil.ToBytes32(scs[0].BlockRoot)
+	rootToOffset := make(map[[32]byte]int)
+	rootToOffset[lastRoot] = 0
+	scMap := make(map[[32]byte]map[uint64]*ethpb.BlobSidecar)
 	for _, sc := range scs {
 		root := bytesutil.ToBytes32(sc.BlockRoot)
 		if root != lastRoot {
 			blockOffset += 1
+			rootToOffset[root] = blockOffset
 		}
 		lastRoot = root
-
+		_, ok := scMap[root]
+		if !ok {
+			scMap[root] = make(map[uint64]*ethpb.BlobSidecar)
+		}
+		scMap[root][sc.Index] = sc
+	}
+	for _, scid := range req {
+		rootMap, ok := scMap[bytesutil.ToBytes32(scid.BlockRoot)]
+		if !ok {
+			panic(fmt.Sprintf("test setup failure, no fixture with root %#x", scid.BlockRoot))
+		}
+		sc, idxOk := rootMap[scid.Index]
+		if !idxOk {
+			panic(fmt.Sprintf("test setup failure, no fixture at index %d with root %#x", scid.Index, scid.BlockRoot))
+		}
 		// Skip sidecars that are supposed to be missing.
-		if c.missing[blockOffset] {
+		root := bytesutil.ToBytes32(sc.BlockRoot)
+		if c.missing[rootToOffset[root]] {
 			continue
 		}
 		// If a sidecar is expired, we'll expect an error for the *first* index, and after that
 		// we'll expect no further chunks in the stream, so filter out any further expected responses.
 		// We don't need to check what index this is because we work through them in order and the first one
 		// will set streamTerminated = true and skip everything else in the test case.
-		if c.expired[blockOffset] {
+		if c.expired[rootToOffset[root]] {
 			return append(expect, &expectedBlobChunk{
 				sidecar: sc,
 				code:    responseCodeResourceUnavailable,
