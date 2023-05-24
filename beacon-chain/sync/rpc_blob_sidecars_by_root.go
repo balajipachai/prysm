@@ -2,16 +2,20 @@ package sync
 
 import (
 	"context"
+	"sort"
+	"time"
 
 	libp2pcore "github.com/libp2p/go-libp2p/core"
 	"github.com/pkg/errors"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/db"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/p2p"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/p2p/types"
+	"github.com/prysmaticlabs/prysm/v4/cmd/beacon-chain/flags"
 	"github.com/prysmaticlabs/prysm/v4/config/params"
 	"github.com/prysmaticlabs/prysm/v4/consensus-types/primitives"
 	"github.com/prysmaticlabs/prysm/v4/encoding/bytesutil"
 	"github.com/prysmaticlabs/prysm/v4/monitoring/tracing"
+	eth "github.com/prysmaticlabs/prysm/v4/proto/prysm/v1alpha1"
 	"github.com/prysmaticlabs/prysm/v4/time/slots"
 	"go.opencensus.io/trace"
 )
@@ -46,28 +50,53 @@ func (s *Service) blobSidecarByRootRPCHandler(ctx context.Context, msg interface
 		return errors.New("message is not type BlobSidecarsByRootReq")
 	}
 	minReqEpoch := blobMinReqEpoch(s.cfg.chain.FinalizedCheckpt().Epoch, slots.ToEpoch(s.cfg.clock.CurrentSlot()))
+
 	blobIdents := *ref
+	batchSize := flags.Get().BlobBatchLimit
+	var ticker *time.Ticker
+	if len(blobIdents) > batchSize {
+		ticker = time.NewTicker(time.Second)
+	}
+	// Sort the identifiers so that requests for the same blob root will be adjacent, minimizing db lookups.
+	sort.Sort(blobIdents)
+
+	buff := struct {
+		root [32]byte
+		scs  []*eth.BlobSidecar
+	}{}
 	for i := range blobIdents {
 		if err := ctx.Err(); err != nil {
 			closeStream(stream, log)
 			return err
 		}
-		root, idx := bytesutil.ToBytes32(blobIdents[i].BlockRoot), blobIdents[i].Index
-		scs, err := s.cfg.beaconDB.BlobSidecarsByRoot(ctx, root)
-		s.rateLimiter.add(stream, 1)
-		if err != nil {
-			if errors.Is(err, db.ErrNotFound) {
-				log.WithError(err).Errorf("error retrieving BlobSidecar, root=%x, index=%d", root, idx)
-				continue
-			}
-			log.WithError(err).Debugf("error retrieving BlobSidecar, root=%x, index=%d", root, idx)
-			s.writeErrorResponseToStream(responseCodeServerError, types.ErrGeneric.Error(), stream)
-			return err
+
+		// Throttle request processing to no more than batchSize/sec.
+		if i != 0 && i%batchSize == 0 && ticker != nil {
+			<-ticker.C
 		}
-		if idx >= uint64(len(scs)) {
+		s.rateLimiter.add(stream, 1)
+		root, idx := bytesutil.ToBytes32(blobIdents[i].BlockRoot), blobIdents[i].Index
+		if root != buff.root {
+			scs, err := s.cfg.beaconDB.BlobSidecarsByRoot(ctx, root)
+			buff.root, buff.scs = root, scs
+			if err != nil {
+				if errors.Is(err, db.ErrNotFound) {
+					// In case db error path gave us a non-nil value, make sure that other indices for the problem root
+					// are not processed when we reenter the outer loop.
+					buff.scs = nil
+					log.WithError(err).Debugf("BlobSidecar not found in db, root=%x, index=%d", root, idx)
+					continue
+				}
+				log.WithError(err).Errorf("unexpected db error retrieving BlobSidecar, root=%x, index=%d", root, idx)
+				s.writeErrorResponseToStream(responseCodeServerError, types.ErrGeneric.Error(), stream)
+				return err
+			}
+		}
+
+		if idx >= uint64(len(buff.scs)) {
 			continue
 		}
-		sc := scs[idx]
+		sc := buff.scs[idx]
 
 		// If any root in the request content references a block earlier than minimum_request_epoch,
 		// peers MAY respond with error code 3: ResourceUnavailable or not include the blob in the response.
