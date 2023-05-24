@@ -222,7 +222,12 @@ func (c *blobsTestCase) run(t *testing.T) {
 	expect := c.defineExpected(t, sidecars, req)
 	m := map[types.Slot][]*ethpb.BlobSidecar{}
 	for _, sc := range expect {
-		m[sc.sidecar.Slot] = append(m[sc.sidecar.Slot], sc.sidecar)
+		// If define expected omits a sidecar from an expected result, we don't need to save it.
+		// This can happen in particular when there are no expected results, because the nth part of the
+		// response is an error (or none at all when the whole request is invalid).
+		if sc.sidecar != nil {
+			m[sc.sidecar.Slot] = append(m[sc.sidecar.Slot], sc.sidecar)
+		}
 	}
 	for _, blobSidecars := range m {
 		require.NoError(t, s.cfg.beaconDB.SaveBlobSidecar(context.Background(), blobSidecars))
