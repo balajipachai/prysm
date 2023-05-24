@@ -137,7 +137,6 @@ func (r *expectedBlobChunk) requireExpected(t *testing.T, s *Service, stream net
 	code, _, err := ReadStatusCode(stream, encoding)
 	require.NoError(t, err)
 	require.Equal(t, r.code, code, "unexpected response code")
-	// require.Equal(t, r.message, msg, "unexpected error message")
 	if code != responseCodeSuccess {
 		return
 	}
