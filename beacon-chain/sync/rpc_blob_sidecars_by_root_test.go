@@ -36,6 +36,12 @@ func (c *blobsTestCase) filterExpectedByRoot(t *testing.T, scs []*ethpb.BlobSide
 		panic("unexpected request type in filterExpectedByRoot")
 	}
 	req := *rp
+	if uint64(len(req)) > params.BeaconNetworkConfig().MaxRequestBlobsSidecars {
+		return []*expectedBlobChunk{{
+			code:    responseCodeInvalidRequest,
+			message: p2pTypes.ErrBlobLTMinRequest.Error(),
+		}}
+	}
 	sort.Sort(req)
 	var expect []*expectedBlobChunk
 	blockOffset := 0
@@ -191,6 +197,11 @@ func TestBlobsByRootValidation(t *testing.T) {
 			nblocks: 3,
 			missing: map[int]bool{1: true},
 			total:   func(i int) *int { return &i }(8),
+		},
+		{
+			name:    "exceeds req max",
+			nblocks: int(params.BeaconNetworkConfig().MaxRequestBlobsSidecars) + 1,
+			err:     p2pTypes.ErrMaxBlobReqExceeded,
 		},
 	}
 	for _, c := range cases {

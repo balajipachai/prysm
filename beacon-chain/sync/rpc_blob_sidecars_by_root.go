@@ -49,16 +49,22 @@ func (s *Service) blobSidecarByRootRPCHandler(ctx context.Context, msg interface
 	if !ok {
 		return errors.New("message is not type BlobSidecarsByRootReq")
 	}
-	minReqEpoch := blobMinReqEpoch(s.cfg.chain.FinalizedCheckpt().Epoch, slots.ToEpoch(s.cfg.clock.CurrentSlot()))
 
 	blobIdents := *ref
+	if uint64(len(blobIdents)) > params.BeaconNetworkConfig().MaxRequestBlobsSidecars {
+		s.cfg.p2p.Peers().Scorers().BadResponsesScorer().Increment(stream.Conn().RemotePeer())
+		s.writeErrorResponseToStream(responseCodeInvalidRequest, types.ErrMaxBlobReqExceeded.Error(), stream)
+		return types.ErrMaxBlobReqExceeded
+	}
+	// Sort the identifiers so that requests for the same blob root will be adjacent, minimizing db lookups.
+	sort.Sort(blobIdents)
+
 	batchSize := flags.Get().BlobBatchLimit
 	var ticker *time.Ticker
 	if len(blobIdents) > batchSize {
 		ticker = time.NewTicker(time.Second)
 	}
-	// Sort the identifiers so that requests for the same blob root will be adjacent, minimizing db lookups.
-	sort.Sort(blobIdents)
+	minReqEpoch := blobMinReqEpoch(s.cfg.chain.FinalizedCheckpt().Epoch, slots.ToEpoch(s.cfg.clock.CurrentSlot()))
 
 	buff := struct {
 		root [32]byte
