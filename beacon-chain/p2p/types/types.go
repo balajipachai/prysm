@@ -65,7 +65,7 @@ func (r *BeaconBlockByRootsReq) UnmarshalSSZ(buf []byte) error {
 	bufLen := len(buf)
 	maxLength := int(params.BeaconNetworkConfig().MaxRequestBlocks * rootLength)
 	if bufLen > maxLength {
-		return errors.Errorf("expected buffer with length of upto %d but received length %d", maxLength, bufLen)
+		return errors.Errorf("expected buffer with length of up to %d but received length %d", maxLength, bufLen)
 	}
 	if bufLen%rootLength != 0 {
 		return ssz.ErrIncorrectByteSize
