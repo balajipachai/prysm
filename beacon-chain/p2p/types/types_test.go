@@ -95,7 +95,7 @@ func TestBeaconBlockByRootsReq_Limit(t *testing.T) {
 		buf = append(buf, rt[:]...)
 	}
 	req2 := BeaconBlockByRootsReq(nil)
-	require.ErrorContains(t, "expected buffer with length of upto", req2.UnmarshalSSZ(buf))
+	require.ErrorContains(t, "expected buffer with length of up to", req2.UnmarshalSSZ(buf))
 }
 
 func TestErrorResponse_Limit(t *testing.T) {
