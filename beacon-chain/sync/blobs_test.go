@@ -84,7 +84,7 @@ func generateTestBlockWithSidecars(t *testing.T, parent [32]byte, slot types.Slo
 		Timestamp:     0,
 		ExtraData:     make([]byte, 0),
 		BaseFeePerGas: bytesutil.PadTo([]byte("baseFeePerGas"), fieldparams.RootLength),
-		ExcessDataGas: bytesutil.PadTo([]byte("excessDataGas"), fieldparams.RootLength),
+		ExcessDataGas: 0,
 		BlockHash:     blockHash[:],
 		Transactions:  encodedBinaryTxs,
 	}
@@ -163,7 +163,7 @@ func (c *blobsTestCase) setup(t *testing.T) (*Service, []*ethpb.BlobSidecar, fun
 	cleanup := func() {
 		require.NoError(t, undo())
 	}
-	maxBlobs := int(params.BeaconConfig().MaxBlobsPerBlock)
+	maxBlobs := fieldparams.MaxBlobsPerBlock
 	chain, clock := defaultMockChain(t)
 	if c.chain == nil {
 		c.chain = chain
@@ -201,7 +201,7 @@ func (c *blobsTestCase) setup(t *testing.T) (*Service, []*ethpb.BlobSidecar, fun
 		rateLimiter: newRateLimiter(client),
 	}
 
-	byRootRate := params.BeaconNetworkConfig().MaxRequestBlobsSidecars * params.BeaconConfig().MaxBlobsPerBlock
+	byRootRate := params.BeaconNetworkConfig().MaxRequestBlobsSidecars * fieldparams.MaxBlobsPerBlock
 	s.setRateCollector(p2p.RPCBlobSidecarsByRootTopicV1, leakybucket.NewCollector(0.000001, int64(byRootRate), time.Second, false))
 
 	return s, sidecars, cleanup
@@ -318,7 +318,7 @@ func TestRoundTripDenebSave(t *testing.T) {
 	c.clock = clock
 	oldest, err := slots.EpochStart(blobMinReqEpoch(c.chain.FinalizedCheckPoint.Epoch, slots.ToEpoch(c.clock.CurrentSlot())))
 	require.NoError(t, err)
-	maxBlobs := int(params.BeaconConfig().MaxBlobsPerBlock)
+	maxBlobs := fieldparams.MaxBlobsPerBlock
 	block, bsc := generateTestBlockWithSidecars(t, parentRoot, oldest, maxBlobs)
 	require.Equal(t, len(block.Block.Body.BlobKzgCommitments), len(bsc))
 	require.Equal(t, maxBlobs, len(bsc))
