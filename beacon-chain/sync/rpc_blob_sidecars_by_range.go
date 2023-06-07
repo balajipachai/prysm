@@ -10,6 +10,7 @@ import (
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/p2p"
 	p2ptypes "github.com/prysmaticlabs/prysm/v4/beacon-chain/p2p/types"
 	"github.com/prysmaticlabs/prysm/v4/cmd/beacon-chain/flags"
+	fieldparams "github.com/prysmaticlabs/prysm/v4/config/fieldparams"
 	"github.com/prysmaticlabs/prysm/v4/config/params"
 	"github.com/prysmaticlabs/prysm/v4/consensus-types/primitives"
 	"github.com/prysmaticlabs/prysm/v4/monitoring/tracing"
@@ -115,7 +116,7 @@ func blobsByRangeMinStartSlot(current primitives.Slot) (primitives.Slot, error) 
 }
 
 func blobBatchLimit() uint64 {
-	return uint64(flags.Get().BlockBatchLimit) / params.BeaconConfig().MaxBlobsPerBlock
+	return uint64(flags.Get().BlockBatchLimit / fieldparams.MaxBlobsPerBlock)
 }
 
 func validateBlobsByRange(r *pb.BlobSidecarsByRangeRequest, current primitives.Slot) (rangeParams, error) {
