@@ -170,7 +170,7 @@ var (
 		Usage: "The amount of blobs the local peer is bounded to request and respond to in a batch.",
 		Value: 8,
 	}
-	// BlockBatchLimitBurstFactor specifies the factor by which block batch size may increase.
+	// BlobBatchLimitBurstFactor specifies the factor by which blob batch size may increase.
 	BlobBatchLimitBurstFactor = &cli.IntFlag{
 		Name:  "blob-batch-limit-burst-factor",
 		Usage: "The factor by which blob batch limit may increase on burst.",

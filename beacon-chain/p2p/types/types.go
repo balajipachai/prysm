@@ -136,7 +136,7 @@ func (b *BlobSidecarsByRootReq) SizeSSZ() int {
 	return len(*b) * blobIdSize
 }
 
-// MarshalSSZTo marshals the block by roots request with the provided byte slice.
+// MarshalSSZTo appends the serialized BlobSidecarsByRootReq value to the provided byte slice.
 func (b *BlobSidecarsByRootReq) MarshalSSZTo(dst []byte) ([]byte, error) {
 	// A List without an enclosing container is marshaled exactly like a vector, no length offset required.
 	marshalledObj, err := b.MarshalSSZ()
@@ -146,7 +146,7 @@ func (b *BlobSidecarsByRootReq) MarshalSSZTo(dst []byte) ([]byte, error) {
 	return append(dst, marshalledObj...), nil
 }
 
-// MarshalSSZ Marshals the block by roots request type into the serialized object.
+// MarshalSSZ serializes the BlobSidecarsByRootReq value to a byte slice.
 func (b *BlobSidecarsByRootReq) MarshalSSZ() ([]byte, error) {
 	buf := make([]byte, len(*b)*blobIdSize)
 	for i, id := range *b {
@@ -160,7 +160,7 @@ func (b *BlobSidecarsByRootReq) MarshalSSZ() ([]byte, error) {
 }
 
 // UnmarshalSSZ unmarshals the provided bytes buffer into the
-// block by roots request object.
+// BlobSidecarsByRootReq value.
 func (b *BlobSidecarsByRootReq) UnmarshalSSZ(buf []byte) error {
 	bufLen := len(buf)
 	maxLength := int(params.BeaconNetworkConfig().MaxRequestBlobsSidecars) * blobIdSize
