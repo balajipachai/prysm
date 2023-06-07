@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/p2p"
+	fieldparams "github.com/prysmaticlabs/prysm/v4/config/fieldparams"
 	"github.com/prysmaticlabs/prysm/v4/config/params"
 	types "github.com/prysmaticlabs/prysm/v4/consensus-types/primitives"
 	"github.com/prysmaticlabs/prysm/v4/encoding/bytesutil"
@@ -24,8 +25,8 @@ func (c *blobsTestCase) defaultOldestSlotByRange(t *testing.T) types.Slot {
 }
 
 func blobRangeRequestFromSidecars(scs []*ethpb.BlobSidecar) interface{} {
-	maxBlobs := params.BeaconConfig().MaxBlobsPerBlock
-	count := uint64(len(scs)) / maxBlobs
+	maxBlobs := fieldparams.MaxBlobsPerBlock
+	count := uint64(len(scs) / maxBlobs)
 	return &ethpb.BlobSidecarsByRangeRequest{
 		StartSlot: scs[0].Slot,
 		Count:     count,
@@ -123,7 +124,7 @@ func TestBlobByRangeOK(t *testing.T) {
 					Count:     20,
 				}
 			},
-			total: func() *int { x := int(params.BeaconConfig().MaxBlobsPerBlock * 10); return &x }(), // 10 blocks * 4 blobs = 40
+			total: func() *int { x := fieldparams.MaxBlobsPerBlock * 10; return &x }(), // 10 blocks * 4 blobs = 40
 		},
 
 		{
