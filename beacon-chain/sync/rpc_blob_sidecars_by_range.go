@@ -19,8 +19,6 @@ import (
 	"go.opencensus.io/trace"
 )
 
-type BlobSidecarProcessor func(sidecar *pb.BlobSidecar) error
-
 func (s *Service) streamBlobBatch(ctx context.Context, batch blockBatch, stream libp2pcore.Stream) (uint64, error) {
 	ctx, span := trace.StartSpan(ctx, "sync.streamBlobBatch")
 	defer span.End()
