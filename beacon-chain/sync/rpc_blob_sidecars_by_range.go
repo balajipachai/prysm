@@ -118,6 +118,9 @@ func blobBatchLimit() uint64 {
 }
 
 func validateBlobsByRange(r *pb.BlobSidecarsByRangeRequest, current primitives.Slot) (rangeParams, error) {
+	if r.Count == 0 {
+		return rangeParams{}, errors.Wrap(p2ptypes.ErrInvalidRequest, "invalid request Count parameter")
+	}
 	rp := rangeParams{
 		start: r.StartSlot,
 		size:  r.Count,
