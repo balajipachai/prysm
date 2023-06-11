@@ -272,6 +272,7 @@ func generateGenesis(ctx context.Context) (state.BeaconState, error) {
 		if v > version.Altair {
 			// set ttd to zero so EL goes post-merge immediately
 			gen.Config.TerminalTotalDifficulty = big.NewInt(0)
+			gen.Config.TerminalTotalDifficultyPassed = true
 		}
 	} else {
 		gen = interop.GethTestnetGenesis(f.GenesisTime, params.BeaconConfig())
