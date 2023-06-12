@@ -141,8 +141,11 @@ func readChunkEncodedBlobsAsStreamReader(t *testing.T, s *Service, expect []*exp
 	encoding := s.cfg.p2p.Encoding()
 	ctxMap, err := ContextByteVersionsForValRoot(s.cfg.clock.GenesisValidatorsRoot())
 	require.NoError(t, err)
+	vf := func(sidecar *ethpb.BlobSidecar) error {
+		return nil
+	}
 	return func(stream network.Stream) {
-		scs, err := readChunkEncodedBlobs(stream, encoding, ctxMap)
+		scs, err := readChunkEncodedBlobs(stream, encoding, ctxMap, vf)
 		require.NoError(t, err)
 		require.Equal(t, len(expect), len(scs))
 		for i, sc := range scs {

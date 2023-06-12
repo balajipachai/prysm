@@ -154,13 +154,29 @@ func SendBlobSidecarByRoot(
 	}
 	defer closeStream(stream, log)
 
-	return readChunkEncodedBlobs(stream, p2pApi.Encoding(), ctxMap)
+	return readChunkEncodedBlobs(stream, p2pApi.Encoding(), ctxMap, blobValidatorFromRootReq(req))
 }
 
 var ErrBlobChunkedReadFailure = errors.New("failed to read stream of chunk-encoded blobs")
 var ErrBlobUnmarshal = errors.New("Could not unmarshal chunk-encoded blob")
+var ErrUnrequestedRoot = errors.New("Received BlobSidecar in response that was not requested")
 
-func readChunkEncodedBlobs(stream network.Stream, encoding encoder.NetworkEncoding, ctxMap ContextByteVersions) ([]*pb.BlobSidecar, error) {
+type blobResponseValidation func(*pb.BlobSidecar) error
+
+func blobValidatorFromRootReq(req *p2ptypes.BlobSidecarsByRootReq) blobResponseValidation {
+	roots := make(map[[32]byte]bool)
+	for _, sc := range *req {
+		roots[bytesutil.ToBytes32(sc.BlockRoot)] = true
+	}
+	return func(sc *pb.BlobSidecar) error {
+		if requested := roots[bytesutil.ToBytes32(sc.BlockRoot)]; !requested {
+			return errors.Wrapf(ErrUnrequestedRoot, "root=%#x", sc.BlockRoot)
+		}
+		return nil
+	}
+}
+
+func readChunkEncodedBlobs(stream network.Stream, encoding encoder.NetworkEncoding, ctxMap ContextByteVersions, vf blobResponseValidation) ([]*pb.BlobSidecar, error) {
 	decode := encoding.DecodeWithMaxLength
 	max := int(params.BeaconNetworkConfig().MaxRequestBlobsSidecars)
 	var (
@@ -192,6 +208,9 @@ func readChunkEncodedBlobs(stream network.Stream, encoding encoder.NetworkEncodi
 		sc := &pb.BlobSidecar{}
 		if err := decode(stream, sc); err != nil {
 			return nil, errors.Wrap(err, "failed to decode the protobuf-encoded BlobSidecar message from RPC chunk stream")
+		}
+		if err := vf(sc); err != nil {
+			return nil, errors.Wrap(err, "validation failure decoding blob RPC response")
 		}
 		sidecars = append(sidecars, sc)
 	}
