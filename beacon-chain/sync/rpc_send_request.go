@@ -151,7 +151,7 @@ func SendBlobsByRangeRequest(ctx context.Context, ci blockchain.ForkFetcher, p2p
 	}
 	defer closeStream(stream, log)
 
-	return readChunkEncodedBlobs(stream, p2pApi.Encoding(), ctxMap)
+	return readChunkEncodedBlobs(stream, p2pApi.Encoding(), ctxMap, blobValidatorFromRangeReq(req))
 }
 
 func SendBlobSidecarByRoot(
@@ -175,6 +175,7 @@ func SendBlobSidecarByRoot(
 var ErrBlobChunkedReadFailure = errors.New("failed to read stream of chunk-encoded blobs")
 var ErrBlobUnmarshal = errors.New("Could not unmarshal chunk-encoded blob")
 var ErrUnrequestedRoot = errors.New("Received BlobSidecar in response that was not requested")
+var ErrBlobResponseOutOfBounds = errors.New("received BlobSidecar with slot outside BlobSidecarsByRangeRequest bounds")
 
 type blobResponseValidation func(*pb.BlobSidecar) error
 
@@ -186,6 +187,16 @@ func blobValidatorFromRootReq(req *p2ptypes.BlobSidecarsByRootReq) blobResponseV
 	return func(sc *pb.BlobSidecar) error {
 		if requested := roots[bytesutil.ToBytes32(sc.BlockRoot)]; !requested {
 			return errors.Wrapf(ErrUnrequestedRoot, "root=%#x", sc.BlockRoot)
+		}
+		return nil
+	}
+}
+
+func blobValidatorFromRangeReq(req *pb.BlobSidecarsByRangeRequest) blobResponseValidation {
+	end := req.StartSlot + primitives.Slot(req.Count)
+	return func(sc *pb.BlobSidecar) error {
+		if sc.Slot < req.StartSlot || sc.Slot >= end {
+			return errors.Wrapf(ErrBlobResponseOutOfBounds, "req start,end:%d,%d, resp:%d", req.StartSlot, end, sc.Slot)
 		}
 		return nil
 	}
