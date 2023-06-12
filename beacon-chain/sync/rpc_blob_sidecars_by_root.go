@@ -51,10 +51,9 @@ func (s *Service) blobSidecarByRootRPCHandler(ctx context.Context, msg interface
 	}
 
 	blobIdents := *ref
-	if uint64(len(blobIdents)) > params.BeaconNetworkConfig().MaxRequestBlobsSidecars {
+	if err := validateBlobByRootRequest(blobIdents); err != nil {
 		s.cfg.p2p.Peers().Scorers().BadResponsesScorer().Increment(stream.Conn().RemotePeer())
-		s.writeErrorResponseToStream(responseCodeInvalidRequest, types.ErrMaxBlobReqExceeded.Error(), stream)
-		return types.ErrMaxBlobReqExceeded
+		s.writeErrorResponseToStream(responseCodeInvalidRequest, err.Error(), stream)
 	}
 	// Sort the identifiers so that requests for the same blob root will be adjacent, minimizing db lookups.
 	sort.Sort(blobIdents)
@@ -121,5 +120,12 @@ func (s *Service) blobSidecarByRootRPCHandler(ctx context.Context, msg interface
 		}
 	}
 	closeStream(stream, log)
+	return nil
+}
+
+func validateBlobByRootRequest(blobIdents types.BlobSidecarsByRootReq) error {
+	if uint64(len(blobIdents)) > params.BeaconNetworkConfig().MaxRequestBlobsSidecars {
+		return types.ErrMaxBlobReqExceeded
+	}
 	return nil
 }
