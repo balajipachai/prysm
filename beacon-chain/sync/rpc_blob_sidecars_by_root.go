@@ -54,6 +54,7 @@ func (s *Service) blobSidecarByRootRPCHandler(ctx context.Context, msg interface
 	if err := validateBlobByRootRequest(blobIdents); err != nil {
 		s.cfg.p2p.Peers().Scorers().BadResponsesScorer().Increment(stream.Conn().RemotePeer())
 		s.writeErrorResponseToStream(responseCodeInvalidRequest, err.Error(), stream)
+		return err
 	}
 	// Sort the identifiers so that requests for the same blob root will be adjacent, minimizing db lookups.
 	sort.Sort(blobIdents)
