@@ -34,7 +34,6 @@ var mainnetNetworkConfig = &NetworkConfig{
 	BlobsidecarSubnetCount:           4,
 	AttestationPropagationSlotRange:  32,
 	MaxRequestBlocks:                 1 << 10, // 1024
-	MaxRequestBlocksDeneb:            1 << 7,  // 128
 	TtfbTimeout:                      5 * time.Second,
 	RespTimeout:                      10 * time.Second,
 	MaximumGossipClockDisparity:      500 * time.Millisecond,
