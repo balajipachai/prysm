@@ -165,7 +165,7 @@ func (b *BlobSidecarsByRootReq) UnmarshalSSZ(buf []byte) error {
 	bufLen := len(buf)
 	maxLength := int(params.BeaconNetworkConfig().MaxRequestBlobsSidecars) * blobIdSize
 	if bufLen > maxLength {
-		return errors.Errorf("expected buffer with length of upto %d but received length %d", maxLength, bufLen)
+		return errors.Errorf("expected buffer with length of up to %d but received length %d", maxLength, bufLen)
 	}
 	if bufLen%blobIdSize != 0 {
 		return errors.Wrapf(ssz.ErrIncorrectByteSize, "size=%d", bufLen)
